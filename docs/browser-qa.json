@@ -1,0 +1,40 @@
+{
+  "checks": [
+    "1266 real GLB parts loaded",
+    "Repeated components instanced",
+    "Scroll selects piston chapter",
+    "Scroll moves original groups",
+    "Exploded chapter reached",
+    "Reverse scroll restores group positions",
+    "Orbit drag changes camera",
+    "Raycast click selects an actual model part",
+    "System filter hides real components",
+    "Manual slider explodes engine",
+    "Manual slider reassembles engine",
+    "Part ID inspector works",
+    "Labels toggle works",
+    "Working cycle enabled",
+    "X-ray control changes state",
+    "Library search returns real parts",
+    "Search empty state",
+    "Energy diagram reverses",
+    "Desktop has no horizontal overflow",
+    "Mobile no horizontal overflow",
+    "Mobile menu opens",
+    "Mobile system controls accessible",
+    "No browser errors",
+    "Reduced-motion hero camera stays stationary",
+    "WebGL fallback displays original render",
+    "Unavailable WebGL does not expose fake lab controls"
+  ],
+  "errors": [],
+  "desktop": {
+    "width": 1440,
+    "height": 1000
+  },
+  "mobile": {
+    "width": 390,
+    "height": 844
+  },
+  "date": "2026-10-09T08:56:02.446Z"
+}

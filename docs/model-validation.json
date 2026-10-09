@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-09T08:47:30.189Z",
+  "parts": 1266,
+  "groups": 18,
+  "vertices": 395064,
+  "triangles": 710558,
+  "compressed_bytes": 5170576,
+  "checks": [
+    "One unique node for every exported part",
+    "Catalog names, IDs, systems, materials, bounds and trajectories match the model",
+    "All explosion groups exist",
+    "Every part has a real mesh",
+    "All meshes retain positions and normals",
+    "Finite vertices and valid triangle indices",
+    "piston count = 6",
+    "rod count = 6",
+    "crankpin count = 6",
+    "camshaft count = 4",
+    "valve count = 24",
+    "injector count = 6",
+    "mgu_k count = 1",
+    "turbo_shaft count = 1",
+    "No MGU-H component",
+    "Original Blender source SHA-256 unchanged"
+  ]
+}
