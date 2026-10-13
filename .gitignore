@@ -3,5 +3,8 @@ dist/
 artifacts/
 *.log
 *.tsbuildinfo
+*.7z
+__pycache__/
+public/models/engine.source.glb
 .env*
 ! .env.example

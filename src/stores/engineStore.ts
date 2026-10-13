@@ -15,6 +15,7 @@ export interface EngineState {
   labels: boolean;
   flows: boolean;
   playing: boolean;
+  combustion: boolean;
   presentation: boolean;
   systems: SystemId[];
   quality: "auto" | "high" | "low";
@@ -42,6 +43,7 @@ export const useEngineStore = create<EngineState>((set, get) => ({
   labels: false,
   flows: false,
   playing: false,
+  combustion: true,
   presentation: false,
   systems: SYSTEMS.map((s) => s.id),
   quality: "auto",

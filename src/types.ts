@@ -21,6 +21,8 @@ export interface Part {
   system: string;
   material: string;
   group: string;
+  assembly_key?: string;
+  motion_role?: "piston" | "rod" | "bearing";
   component_kind: string;
   center: Vec3;
   explosion_offset: Vec3;
@@ -46,6 +48,7 @@ export interface Manifest {
   model: string;
   parts: Part[];
   groups: Record<string, Vec3>;
+  trajectories?: Record<string, {offset: Vec3; start: number; end: number; family: string; label: string}>;
   educational_reconstruction: boolean;
 }
 export interface LoadedModel {

@@ -240,8 +240,9 @@ export const topics: Topic[] = [
     groups: ["block", "electric"],
     diagram: "energy",
     facts: [
-      ["1266", "деталей веб-модели"],
+      ["1267", "деталей веб-модели"],
       ["2026", "архитектурная основа"],
     ],
   },
 ];
+

@@ -39,7 +39,7 @@ const flowPaths: { group: string; color: string; points: Vec3[] }[] = [
     ],
   },
   {
-    group: "exhaust",
+    group: "exhaust_L",
     color: "#ff8047",
     points: [
       [0.58, 0.38, 0.17],
@@ -53,12 +53,13 @@ const flowPaths: { group: string; color: string; points: Vec3[] }[] = [
     ],
   },
   {
-    group: "cooling",
+    group: "cooling_L",
     color: "#efb650",
     points: [
       [0.52, 0.215, 0.12],
-      [0.68, 0.18, 0.2],
-      [0.9, 0.23, 0.25],
+      [.57, .15, .22],
+      [.75, .145, .43],
+      [.92, .212, .48],
     ],
   },
 ];
@@ -76,7 +77,7 @@ function Flow({
   const group = useRef<Group>(null);
   useFrame(({ clock }) => {
     const assembly = [...registry.entries.values()].find(
-      (e) => e.part.group === path.group,
+      (e) => e.part.assembly_key === path.group,
     )?.object.parent;
     if (assembly && group.current)
       group.current.position.copy(assembly.position);
@@ -154,7 +155,7 @@ export default function EngineScene({ model }: { model: LoadedModel }) {
         }}
         dpr={[1, 1.4]}
         onCreated={({ gl }) => {
-          gl.toneMappingExposure = 0.86;
+          gl.toneMappingExposure = 0.82;
           gl.domElement.addEventListener("webglcontextlost", (event) => {
             event.preventDefault();
             window.dispatchEvent(new Event("engine-context-lost"));
@@ -164,7 +165,7 @@ export default function EngineScene({ model }: { model: LoadedModel }) {
         <ambientLight intensity={0.3} />
         <directionalLight
           position={[1, 4, 3]}
-          intensity={1.7}
+          intensity={1.25}
           color="#e8efff"
         />
         <directionalLight
@@ -181,10 +182,10 @@ export default function EngineScene({ model }: { model: LoadedModel }) {
           <Environment resolution={256} frames={1}>
             <Lightformer
               form="rect"
-              intensity={3}
+              intensity={2.3}
               position={[0, 3, 0]}
               rotation={[Math.PI / 2, 0, 0]}
-              scale={[7, 4, 1]}
+              scale={[5, 2.2, 1]}
             />
             <Lightformer
               form="rect"
@@ -195,7 +196,7 @@ export default function EngineScene({ model }: { model: LoadedModel }) {
             />
             <Lightformer
               form="rect"
-              intensity={1}
+              intensity={1.4}
               position={[0, 1, 4]}
               scale={[5, 1, 1]}
             />
@@ -208,7 +209,7 @@ export default function EngineScene({ model }: { model: LoadedModel }) {
           registry &&
           flowPaths
             .filter((p) =>
-              p.group === "cooling"
+              p.group === "cooling_L"
                 ? chapter === 7 || mode === "lab"
                 : chapter === 4 || mode === "lab",
             )
@@ -220,7 +221,7 @@ export default function EngineScene({ model }: { model: LoadedModel }) {
           enableDamping
           dampingFactor={0.08}
           minDistance={0.055}
-          maxDistance={7}
+          maxDistance={10}
           target={[0.63, 0.4, 0]}
           enablePan={mode === "lab"}
         />

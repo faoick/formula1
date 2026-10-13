@@ -3,8 +3,9 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useEngineStore } from "../../stores/engineStore";
-import { chapters, smooth } from "../../data/chapters";
+import { cinematicView } from "./cinematicShots";
 import type { PartSelectionController } from "./PartSelectionController";
+import { DampedValue } from "../../utils/motion";
 export function CameraController({
   controls,
   registry,
@@ -18,6 +19,17 @@ export function CameraController({
   const desired = useRef(new Vector3(2.5, 1.5, 2));
   const target = useRef(new Vector3(0.6, 0.4, 0));
   const mode = useEngineStore((s) => s.mode);
+  const motion = useRef(Array.from({ length: 6 }, () => new DampedValue()));
+  const initialized = useRef(false);
+  useEffect(() => {
+    const control = controls.current;
+    const takeControl = () => {
+      transition.current = 0;
+      initialized.current = false;
+    };
+    control?.addEventListener("start", takeControl);
+    return () => control?.removeEventListener("start", takeControl);
+  }, [controls]);
   useEffect(() => {
     last.current = "";
   }, [mode]);
@@ -33,30 +45,23 @@ export function CameraController({
         const key = "exploded-orbit";
         if (last.current !== key) {
           last.current = key;
-          const chapter = chapters[8];
-          target.current.set(...chapter.target);
+          target.current.set(0.65, 0.65, 0);
           desired.current
-            .set(...chapter.eye)
+            .set(3.45, 2.3, 4.1)
             .multiplyScalar(factor)
             .add(target.current);
           transition.current = 1;
         }
       } else {
         last.current = "story";
-        const p = s.stage === "hero" ? 0 : s.progress;
-        const x = Math.min(9, p * 10);
-        const i = Math.floor(x),
-          j = Math.min(9, i + 1),
-          t = smooth(x - i);
-        target.current
-          .set(...chapters[i].target)
-          .lerp(new Vector3(...chapters[j].target), t);
+        const p = s.progress;
+        const view = cinematicView(p, registry);
+        target.current.copy(view.target);
         desired.current
-          .set(...chapters[i].eye)
-          .lerp(new Vector3(...chapters[j].eye), t)
+          .copy(view.offset)
           .multiplyScalar(factor)
           .add(target.current);
-        if (s.stage === "hero") {
+        if (s.stage === "hero" && p < 0.00001) {
           target.current.set(0.69, 0.39, 0);
           desired.current.set(1.55, 1.01, 1.11);
           if (mobile)
@@ -74,6 +79,7 @@ export function CameraController({
         s.cameraReset,
         s.focusToken,
         s.playing,
+        s.assembly,
         Math.round(size.width),
         Math.round(size.height),
       ].join(":");
@@ -98,8 +104,12 @@ export function CameraController({
                 .multiplyScalar(distance * factor),
             );
         } else {
-          target.current.set(0.63, 0.4, 0);
-          desired.current.set(3.2, 2.4, 3.5);
+          target.current.set(0.63, 0.4 + 0.22 * s.assembly, 0);
+          desired.current
+            .set(3.2, 2.4, 3.5)
+            .sub(target.current)
+            .multiplyScalar(1 + 0.65 * s.assembly)
+            .add(target.current);
           if (mobile)
             desired.current
               .sub(target.current)
@@ -109,15 +119,33 @@ export function CameraController({
       }
     }
     if (transition.current > 0) {
-      const alpha = s.reducedMotion ? 1 : 1 - Math.exp(-dt * 5);
-      camera.position.lerp(desired.current, alpha);
-      c.target.lerp(target.current, alpha);
+      if (!initialized.current) {
+        [...camera.position.toArray(), ...c.target.toArray()].forEach((v, i) =>
+          motion.current[i].reset(v),
+        );
+        initialized.current = true;
+      }
+      const goal = [...desired.current.toArray(), ...target.current.toArray()];
+      const values = motion.current.map((m, i) =>
+        s.reducedMotion ? m.reset(goal[i]) : m.step(goal[i], dt, 9),
+      );
+      camera.position.set(values[0], values[1], values[2]);
+      c.target.set(values[3], values[4], values[5]);
       c.update();
       if (s.mode === "lab" || s.chapter === 8) {
-        transition.current -= dt * 0.7;
-        if (camera.position.distanceTo(desired.current) < 0.002)
+        if (
+          motion.current.every(
+            (m, i) =>
+              Math.abs(m.value - goal[i]) < 0.0001 &&
+              Math.abs(m.velocity) < 0.001,
+          )
+        ) {
           transition.current = 0;
+          initialized.current = false;
+        }
       }
+    } else {
+      initialized.current = false;
     }
     if (import.meta.env.DEV)
       (window as unknown as { __camera: unknown }).__camera = {

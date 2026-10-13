@@ -1,9 +1,12 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ArrowDown, Box, Play, Wind, BookOpen } from "lucide-react";
+import { ArrowDown, Box, Play, Wind, BookOpen, Flame } from "lucide-react";
+import { CombustionReadout } from './engine/CombustionEffects';
 import { chapters } from "../data/chapters";
+import { shotCaption } from "./engine/cinematicShots";
 import { enterLab, useEngineStore } from "../stores/engineStore";
+import { DampedValue } from "../utils/motion";
 gsap.registerPlugin(ScrollTrigger);
 export function Hero() {
   return (
@@ -31,13 +34,11 @@ export function Hero() {
           <button
             className="button primary"
             onClick={() =>
-              document
-                .getElementById("experience")
-                ?.scrollIntoView({
-                  behavior: useEngineStore.getState().reducedMotion
-                    ? "instant"
-                    : "smooth",
-                })
+              document.getElementById("experience")?.scrollIntoView({
+                behavior: useEngineStore.getState().reducedMotion
+                  ? "instant"
+                  : "smooth",
+              })
             }
           >
             Исследовать двигатель
@@ -89,14 +90,43 @@ export function Hero() {
 }
 export function ScrollExperience() {
   const ref = useRef<HTMLElement>(null);
-  const progress = useEngineStore((s) => s.progress),
-    chapter = useEngineStore((s) => s.chapter),
+  const progressBar = useRef<HTMLDivElement>(null);
+  const progressText = useRef<HTMLSpanElement>(null);
+  const caption = useEngineStore((s) => shotCaption(s.progress));
+  const combustion=useEngineStore(s=>s.combustion);
+  const chapter = useEngineStore((s) => s.chapter),
     flows = useEngineStore((s) => s.flows),
     reduced = useEngineStore((s) => s.reducedMotion);
   const current = chapters[chapter];
   useEffect(() => {
+    let previous = -1;
+    const paint = () => {
+      const p = useEngineStore.getState().progress;
+      if (p === previous) return;
+      previous = p;
+      if (progressBar.current)
+        progressBar.current.style.transform = `scaleX(${p})`;
+      if (progressText.current)
+        progressText.current.textContent = `${Math.round(p * 100)
+          .toString()
+          .padStart(3, "0")}% EXPLORED`;
+    };
+    paint();
+    return useEngineStore.subscribe(paint);
+  }, []);
+  useEffect(() => {
     const section = ref.current!;
     const timeline = { p: 0 };
+    const motion = new DampedValue(useEngineStore.getState().progress);
+    const tick = (_time: number, delta: number) => {
+      const state = useEngineStore.getState();
+      if (state.mode === "lab") return;
+      const p = reduced
+        ? motion.reset(timeline.p)
+        : motion.step(timeline.p, delta / 1000, 11, 0.28);
+      if (Math.abs(p - state.progress) > 1e-8)
+        state.set({ progress: p, chapter: Math.min(9, Math.floor(p * 10)) });
+    };
     const ctx = gsap.context(() => {
       gsap.to(timeline, {
         p: 1,
@@ -105,9 +135,9 @@ export function ScrollExperience() {
           id: "engine-story",
           trigger: section,
           start: "top top",
-          end: () => "+=" + innerHeight * 10,
+          end: () => "+=" + innerHeight * 12,
           pin: true,
-          scrub: reduced ? true : 0.65,
+          scrub: true,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
             useEngineStore
@@ -119,16 +149,13 @@ export function ScrollExperience() {
           onEnterBack: () => useEngineStore.getState().set({ stage: "story" }),
           onLeaveBack: () => useEngineStore.getState().set({ stage: "hero" }),
         },
-        onUpdate: () =>
-          useEngineStore
-            .getState()
-            .set({
-              progress: timeline.p,
-              chapter: Math.min(9, Math.floor(timeline.p * 10)),
-            }),
       });
     }, section);
-    return () => ctx.revert();
+    gsap.ticker.add(tick);
+    return () => {
+      gsap.ticker.remove(tick);
+      ctx.revert();
+    };
   }, [reduced]);
   const jump = (i: number) => {
     const trigger = ScrollTrigger.getById("engine-story");
@@ -141,8 +168,9 @@ export function ScrollExperience() {
   return (
     <section id="experience" className="experience" ref={ref}>
       <div
+        ref={progressBar}
         className="story-progress"
-        style={{ transform: `scaleX(${progress})` }}
+        style={{ transform: "scaleX(0)" }}
       />
       <div className="chapter-top mono">
         <span>
@@ -163,6 +191,11 @@ export function ScrollExperience() {
           <strong>{current.fact[0]}</strong>
           <span>{current.fact[1]}</span>
         </div>
+        <p className="shot-caption" key={caption}>
+          <span />
+          {caption}
+        </p>
+        {chapter===2&&<button className="text-button combustion-toggle" aria-pressed={combustion} onClick={()=>useEngineStore.getState().set({combustion:!combustion})}><Flame size={15}/>{combustion?'Скрыть процесс сгорания':'Показать процесс сгорания'}</button>}
         {(chapter === 2 || chapter === 3) && (
           <button
             className="button secondary"
@@ -212,14 +245,10 @@ export function ScrollExperience() {
           </button>
         ))}
       </nav>
+      {chapter===2&&combustion&&<div className="story-process"><CombustionReadout/></div>}
       <div className="story-bottom mono">
         <span>VANTA R26 / EDUCATIONAL RECONSTRUCTION</span>
-        <span>
-          {Math.round(progress * 100)
-            .toString()
-            .padStart(3, "0")}
-          % EXPLORED
-        </span>
+        <span ref={progressText}>000% EXPLORED</span>
       </div>
     </section>
   );

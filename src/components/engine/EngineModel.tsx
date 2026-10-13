@@ -6,7 +6,11 @@ import { ExplodedViewController } from "./ExplodedViewController";
 import { PartSelectionController } from "./PartSelectionController";
 import { WorkingCycleController } from "./WorkingCycleController";
 import { TechnicalLabels } from "./TechnicalLabels";
-import { chapters, smooth } from "../../data/chapters";
+import { chapters } from "../../data/chapters";
+import { DampedValue } from "../../utils/motion";
+import { CombustionEffects } from './CombustionEffects';
+import { storyCycleAngle } from './combustionCycle';
+import { TurboRotorController } from './TurboRotorController';
 export function EngineModel({
   model,
   onRegistry,
@@ -24,27 +28,26 @@ export function EngineModel({
     [root, model],
   );
   const cycle = useMemo(() => new WorkingCycleController(graph), [graph]);
+  const turbo=useMemo(()=>new TurboRotorController(graph),[graph]);
   const labels = useEngineStore((s) => s.labels),
     mode = useEngineStore((s) => s.mode),
     stage = useEngineStore((s) => s.stage),
     chapter = useEngineStore((s) => s.chapter);
-  const assembly = useRef(0);
+  const assembly = useRef(new DampedValue(0));
+  const debugTime = useRef(0);
   useEffect(() => {
     onRegistry(graph);
     return () => graph.dispose();
   }, [graph, onRegistry]);
   useFrame((_, dt) => {
     const s = useEngineStore.getState();
-    assembly.current +=
-      ((s.playing ? 0 : s.assembly) - assembly.current) *
-      (s.reducedMotion ? 1 : 1 - Math.exp(-dt * 7));
-    exploded.apply(
-      assembly.current,
-      s.stage === "hero" ? 0 : s.progress,
-      s.mode === "story",
-      s.playing ? {} : s.systemAssembly,
-    );
-    cycle.update(s.playing, dt);
+    const amount = s.reducedMotion
+      ? assembly.current.reset(s.playing ? 0 : s.assembly)
+      : assembly.current.step(s.playing ? 0 : s.assembly, dt, 9, 0.8);
+    exploded.apply(amount, s.progress, s.mode === "story", {});
+    const storyCycle=s.mode==='story' && s.progress>=.248 && s.progress<.3 && s.combustion && !s.reducedMotion;
+    cycle.update(storyCycle || (s.playing && amount < 0.003),Math.min(dt,.05),storyCycle?storyCycleAngle(s.progress):undefined);
+    turbo.update(s.progress,s.mode==='story'&&!s.reducedMotion);
     root.updateMatrixWorld(true);
     const groups =
       s.mode === "story" && s.stage === "story"
@@ -53,16 +56,13 @@ export function EngineModel({
     graph.style(
       s,
       groups,
-      s.mode === "story" && s.progress > 0.08 && s.progress < 0.79,
+      false,
       s.quality === "low" || (s.quality === "auto" && window.innerWidth < 700),
     );
-    if (s.mode === "story") {
-      const p = s.stage === "hero" ? 0 : s.progress;
-      graph.fadeCasings(
-        1 - 0.88 * smooth((p - 0.06) / 0.07) * (1 - smooth((p - 0.72) / 0.08)),
-      );
-    }
-    if (import.meta.env.DEV)
+    graph.animateMaterials(dt);
+    debugTime.current += dt;
+    if (import.meta.env.DEV && debugTime.current >= 0.08) {
+      debugTime.current = 0;
       (window as unknown as { __engineDebug: unknown }).__engineDebug = {
         parts: graph.entries.size,
         instances: graph.batches.reduce((n, b) => n + b.count, 0),
@@ -72,7 +72,7 @@ export function EngineModel({
         selected: s.selected,
         progress: s.progress,
         chapter: s.chapter,
-        assembly: assembly.current,
+        assembly: amount,
         groups: Object.fromEntries(
           [...exploded.groups].map(([name, g]) => [
             name,
@@ -80,6 +80,7 @@ export function EngineModel({
           ]),
         ),
       };
+    }
   });
   function point(event: ThreeEvent<PointerEvent>, click = false) {
     const s = useEngineStore.getState();
@@ -123,6 +124,7 @@ export function EngineModel({
           point(e as unknown as ThreeEvent<PointerEvent>, true)
         }
       />
+      <CombustionEffects registry={graph} cycle={cycle}/>
       {(labels || autoIds.length > 0) && (
         <TechnicalLabels
           registry={graph}

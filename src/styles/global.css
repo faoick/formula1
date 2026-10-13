@@ -2847,6 +2847,90 @@ input[type="range"] {
 }
 .technical-label {
   font-size: 12px;
+  width: 210px;
+  max-width: calc(100vw - 48px);
+  white-space: normal;
+  line-height: 1.45;
+  pointer-events: auto;
+}
+.technical-label strong {
+  font-weight: 450;
+  display: block;
+  overflow-wrap: anywhere;
+}
+.technical-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+  overflow: hidden;
+}
+.technical-overlay svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.technical-overlay .technical-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: auto !important;
+}
+.technical-leader {
+  stroke: #7f8f9e;
+  stroke-width: 1;
+  fill: none;
+  opacity: 0.7;
+}
+.technical-label.label-1 i {
+  left: auto;
+  right: -26px;
+  transform: rotate(40deg);
+}
+.combustion-toggle {font-size:12px;margin-bottom:16px;}
+.combustion-strokes {display:flex;gap:14px;align-items:center;justify-content:center;}
+.combustion-strokes span {font-size:10px;letter-spacing:.025em;color:#737f8d;transition:color .3s;}
+.combustion-strokes .current {color:#ffc078;}
+.combustion-readout {padding:12px 14px;border-top:1px solid #ffffff16;background:#080a0ddb;}
+.combustion-readout small {display:block;color:#7e8b9a;font-size:10px;margin-top:8px;text-align:center;}
+.story-process {position:absolute;bottom:55px;right:8%;z-index:12;min-width:290px;}
+.cycle-note .combustion-readout {margin:10px 0;}
+.cycle-note .text-button {font-size:11px;margin:0 auto;}
+@media(max-width:800px) {
+  .story-process {bottom:74px;left:20px;right:38px;min-width:0;}
+  .story-copy .shot-caption {display:none;}
+  .combustion-toggle {font-size:10px;display:inline-flex;margin:0 0 12px;}
+  .combustion-strokes {gap:10px;}
+  .combustion-readout {padding:8px;}
+  .combustion-readout small {font-size:9px;}
+}
+.shot-caption {
+  max-width: 300px;
+  min-height: 40px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: #aeb7c4;
+  margin: 20px 0;
+  animation: caption-enter 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes caption-enter {
+  from {
+    opacity: 0;
+    translate: 0 5px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+.shot-caption > span {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  background: #e10600;
+  border-radius: 50%;
+  margin: 0 8px 2px 0;
 }
 .technical-label > span {
   font-size: 10px;

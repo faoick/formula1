@@ -21,6 +21,9 @@ export function pistonPosition(
 export class WorkingCycleController {
   private phase = 0;
   private active = false;
+  get angle() { return this.phase; }
+  get running() { return this.active; }
+  private parentBases = new Map<string, Matrix4>();
   private bases = new Map<string, Matrix4>();
   private pistons: {
     entry: Entry;
@@ -34,6 +37,7 @@ export class WorkingCycleController {
     registry.root.updateMatrixWorld(true);
     for (const [id, e] of registry.entries) {
       this.bases.set(id, e.object.matrixWorld.clone());
+      this.parentBases.set(id,e.object.parent!.matrixWorld.clone().invert());
       if (
         e.part.component_kind === "piston" &&
         e.part.axis_origin &&
@@ -54,7 +58,7 @@ export class WorkingCycleController {
       }
     }
   }
-  update(playing: boolean, delta: number) {
+  update(playing: boolean, delta: number, authoredPhase?: number) {
     if (!playing) {
       if (this.active) {
         for (const e of this.registry.entries.values()) {
@@ -71,7 +75,7 @@ export class WorkingCycleController {
       return;
     }
     this.active = true;
-    this.phase += delta * 0.9;
+    this.phase = authoredPhase ?? this.phase + delta * 0.9;
     for (const [id, e] of this.registry.entries) {
       if (e.part.group === "crank" && !/bearing/i.test(e.part.name_en)) {
         const pivot = new Vector3(0, 0.255, 0);
@@ -82,16 +86,13 @@ export class WorkingCycleController {
         this.assign(e, transform.multiply(this.bases.get(id)!));
       }
       if (e.part.group !== "pistons") continue;
-      const x = e.part.center[0];
-      const p = this.pistons.reduce((a, b) =>
-        Math.abs(b.root.x - x) < Math.abs(a.root.x - x) ? b : a,
-      );
+      const p = this.pistons.find(p => p.entry.part.cylinder_index === e.part.cylinder_index);
+      if (!p) throw new Error(`Missing authored cylinder binding for ${id}`);
       const state = pistonPosition(p.theta + this.phase, p.axis);
       const pin = state.piston.add(p.root),
         crank = state.crank.add(p.root);
-      const name = e.part.name_en.toLowerCase();
       let transform: Matrix4;
-      if (e.part.component_kind === "rod") {
+      if (e.part.motion_role === "rod") {
         const rotation = new Quaternion().setFromUnitVectors(
           p.pin.clone().sub(p.crank).normalize(),
           pin.clone().sub(crank).normalize(),
@@ -105,7 +106,7 @@ export class WorkingCycleController {
             ),
           );
       } else {
-        const isBig = /big end|bolt|washer|nut/.test(name);
+        const isBig = e.part.motion_role === "bearing";
         const shift = isBig
           ? crank.clone().sub(p.crank)
           : pin.clone().sub(p.pin);
@@ -115,8 +116,9 @@ export class WorkingCycleController {
     }
   }
   private assign(e: Entry, world: Matrix4) {
-    e.object.parent!.updateWorldMatrix(true, false);
-    const local = e.object.parent!.matrixWorld.clone().invert().multiply(world);
+    // Work in the original assembly frame. The exploded parent still positions
+    // the entire mechanism, instead of the animation cancelling its translation.
+    const local = this.parentBases.get(e.part.id)!.clone().multiply(world);
     local.decompose(e.object.position, e.object.quaternion, e.object.scale);
   }
 }

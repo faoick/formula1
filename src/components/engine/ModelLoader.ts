@@ -11,7 +11,7 @@ export function loadEngine(
     if (!response.ok) throw Error("Не удалось загрузить каталог деталей.");
     const manifest: Manifest = await response.json();
     const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-    const gltf = await loader.loadAsync(manifest.model, (e) => {
+    const gltf = await loader.loadAsync(manifest.model + '?revision=' + manifest.version, (e) => {
       if (e.total > 0)
         onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
     });

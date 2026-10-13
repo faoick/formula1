@@ -20,6 +20,8 @@ import {
 import { SYSTEMS, type Manifest } from "../../types";
 import { useEngineStore } from "../../stores/engineStore";
 import { EngineInspector } from "./EngineInspector";
+import { trajectoryAmount } from "./assemblyTimeline";
+import { CombustionReadout } from './CombustionEffects';
 export function EngineLab({ manifest }: { manifest: Manifest }) {
   const s = useEngineStore();
   const ref = useRef<HTMLDivElement>(null);
@@ -163,23 +165,21 @@ export function EngineLab({ manifest }: { manifest: Manifest }) {
                 Вернуть все детали
               </button>
               <details className="group-explorer">
-                <summary>Разборка отдельных систем</summary>
+                  <summary>Этапы разборки · с освобождением соседних узлов</summary>
                 {Object.keys(manifest.groups).map((group) => (
                   <label key={group}>
-                    {group}
+                      {manifest.trajectories?.[group]?.label ?? group}
                     <input
                       aria-label={"Разборка группы " + group}
                       type="range"
                       min="0"
                       max="1"
                       step=".01"
-                      value={s.systemAssembly[group] ?? s.assembly}
+                        value={manifest.trajectories?.[group] ? trajectoryAmount(s.assembly,manifest.trajectories[group].start,manifest.trajectories[group].end) : s.assembly}
                       onChange={(e) =>
                         s.set({
-                          systemAssembly: {
-                            ...s.systemAssembly,
-                            [group]: Number(e.target.value),
-                          },
+                            assembly: (manifest.trajectories?.[group]?.start ?? 0) + ((manifest.trajectories?.[group]?.end ?? 1)-(manifest.trajectories?.[group]?.start ?? 0))*Number(e.target.value),
+                            systemAssembly: {},
                           playing: false,
                         })
                       }
@@ -323,10 +323,12 @@ export function EngineLab({ manifest }: { manifest: Manifest }) {
           )}
           {s.playing && (
             <div className="cycle-note">
+              <button className="text-button" aria-pressed={s.combustion} onClick={()=>s.set({combustion:!s.combustion})}>{s.combustion?'Скрыть сгорание':'Показать сгорание'}</button>
+              {s.combustion&&<CombustionReadout/>}
               <span className="red">●</span> УЧЕБНЫЙ ЦИКЛ · ЗАМЕДЛЕНО
               <p>
-                Кинематика реальной геометрии модели. Фазы сгорания условные;
-                цепи, клапаны и передача здесь неподвижны.
+                Учебная визуализация впрыска и воспламенения. Фазы условные;
+                цепи, клапаны и передача неподвижны.
               </p>
             </div>
           )}

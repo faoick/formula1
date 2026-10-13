@@ -22,13 +22,13 @@ page.on("console", (m) => {
   if (m.type() === "error") errors.push(m.text());
 });
 await page.goto("http://localhost:5178/");
-await page.waitForFunction(() => window.__engineDebug?.parts === 1266, null, {
+await page.waitForFunction(() => window.__engineDebug?.parts === 1267, null, {
   timeout: 60000,
 });
 await page.waitForTimeout(1800);
 check(
-  "1266 real GLB parts loaded",
-  await page.evaluate(() => window.__engineDebug.parts === 1266),
+  "1267 real GLB parts loaded",
+  await page.evaluate(() => window.__engineDebug.parts === 1267),
 );
 check(
   "Repeated components instanced",
@@ -57,7 +57,7 @@ check(
 );
 check(
   "Scroll moves original groups",
-  await page.evaluate(() => window.__engineDebug.groups.covers[1] > 0.5),
+  await page.evaluate(() => window.__engineDebug.groups.covers_L[1] > 0.5),
 );
 await page.screenshot({ path: "artifacts/story-pistons.png" });
 await page
@@ -124,14 +124,14 @@ await page.getByRole("checkbox", { name: "04 Турбонаддув" }).check();
 const slider = page.getByRole("slider", { name: "Степень разборки двигателя" });
 await slider.focus();
 await slider.press("End");
-await page.waitForTimeout(1500);
+await page.waitForTimeout(2200);
 check(
   "Manual slider explodes engine",
   await page.evaluate(() => window.__engineDebug.assembly > 0.999),
 );
 await page.screenshot({ path: "artifacts/lab-exploded.png" });
 await slider.press("Home");
-await page.waitForTimeout(1500);
+await page.waitForTimeout(2200);
 check(
   "Manual slider reassembles engine",
   await page.evaluate(() => window.__engineDebug.assembly < 0.001),
@@ -170,7 +170,7 @@ await page
   .getByRole("button", { name: "Закрыть лабораторию", exact: true })
   .click();
 await page.getByRole("link", { name: "Компоненты", exact: true }).click();
-await page.waitForTimeout(1500);
+await page.waitForTimeout(2200);
 await page.getByRole("textbox", { name: "Поиск компонентов" }).fill("piston");
 check(
   "Library search returns real parts",
@@ -205,7 +205,7 @@ const mobile = await browser.newPage({
 });
 mobile.on("pageerror", (e) => errors.push(e.message));
 await mobile.goto("http://localhost:5178/");
-await mobile.waitForFunction(() => window.__engineDebug?.parts === 1266, null, {
+await mobile.waitForFunction(() => window.__engineDebug?.parts === 1267, null, {
   timeout: 60000,
 });
 await mobile.waitForTimeout(1800);
@@ -233,7 +233,7 @@ const reduced = await browser.newPage({
 });
 await reduced.goto("http://localhost:5178/");
 await reduced.waitForFunction(
-  () => window.__engineDebug?.parts === 1266,
+  () => window.__engineDebug?.parts === 1267,
   null,
   { timeout: 60000 },
 );
@@ -288,3 +288,4 @@ await fs.writeFile(
 );
 console.log(JSON.stringify({ passed: checks.length, errors }, null, 2));
 await browser.close();
+

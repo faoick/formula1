@@ -11,7 +11,7 @@ const io = new NodeIO()
     "meshopt.encoder": MeshoptEncoder,
     "meshopt.decoder": MeshoptDecoder,
   });
-const doc = await io.read("public/models/engine.source.glb");
+const doc = await io.read("artifacts/engine.source.glb");
 const ids = doc
   .getRoot()
   .listNodes()
@@ -36,7 +36,8 @@ if (
 console.log(
   JSON.stringify({
     parts: ids.length,
-    source_bytes: (await fs.stat("public/models/engine.source.glb")).size,
+    source_bytes: (await fs.stat("artifacts/engine.source.glb")).size,
     compressed_bytes: (await fs.stat("public/models/engine.glb")).size,
   }),
 );
+

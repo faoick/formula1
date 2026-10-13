@@ -1,6 +1,6 @@
 import { Object3D, Vector3, Quaternion } from "three";
 import type { Manifest } from "../../types";
-import { storyPose } from "../../data/chapters";
+import { storyAssembly, trajectoryAmount } from "./assemblyTimeline";
 export class ExplodedViewController {
   readonly groups = new Map<
     string,
@@ -12,7 +12,7 @@ export class ExplodedViewController {
       offset: Vector3;
     }
   >();
-  constructor(root: Object3D, manifest: Manifest) {
+  constructor(root: Object3D, private manifest: Manifest) {
     root.updateMatrixWorld(true);
     root.traverse((o) => {
       const name = o.userData.assembly_group;
@@ -42,11 +42,16 @@ export class ExplodedViewController {
     story: boolean,
     overrides: Record<string, number> = {},
   ) {
-    const pose = storyPose(progress);
+    let clock = story ? storyAssembly(progress) : assembly;
+    // A requested inner assembly automatically clears earlier removal stages.
+    // Manual controls cannot pull a piston through an attached cylinder head.
+    if (!story) for (const [name,value] of Object.entries(overrides)) {
+      const route = this.manifest.trajectories?.[name];
+      if(route && value>0) clock = Math.max(clock, route.start+(route.end-route.start)*value);
+    }
     for (const [name, g] of this.groups) {
-      const a = pose.a[name] ?? pose.a.all ?? 0,
-        b = pose.b[name] ?? pose.b.all ?? 0;
-      const p = story ? a + (b - a) * pose.t : (overrides[name] ?? assembly);
+      const route = this.manifest.trajectories?.[name];
+      const p = route ? trajectoryAmount(clock,route.start,route.end) : clock;
       g.object.position
         .copy(g.position)
         .addScaledVector(g.offset, Math.max(0, Math.min(1, p)));

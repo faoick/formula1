@@ -23,6 +23,18 @@ export class PartSelectionController {
   entries = new Map<string, Entry>();
   batches: InstancedMesh[] = [];
   private signature = "";
+  private transitions = new Map<
+    MeshStandardMaterial,
+    {
+      color: Color;
+      env: number;
+      opacity: number;
+      emissive: Color;
+      emission: number;
+      object: Object3D;
+      visible: boolean;
+    }
+  >();
   constructor(
     public root: Object3D,
     manifest: Manifest,
@@ -129,11 +141,13 @@ export class PartSelectionController {
       state.xray,
       state.hideCasing,
       state.playing,
+      state.reducedMotion,
       highlight,
       storyReveal,
       low,
     ]);
     if (sig === this.signature) return;
+    const initial = !this.signature;
     this.signature = sig;
     const selected = state.selected;
     for (const [id, e] of this.entries) {
@@ -194,30 +208,83 @@ export class PartSelectionController {
         mesh.instanceColor!.needsUpdate = true;
         continue;
       }
-      e.object.visible = visible;
+      const wasVisible = e.object.visible;
+      const soften = state.mode === "story" && !initial && !state.reducedMotion;
+      e.object.visible = visible || (soften && wasVisible);
       for (const mesh of e.meshes)
         for (const mat of (Array.isArray(mesh.material)
           ? mesh.material
           : [mesh.material]) as MeshStandardMaterial[]) {
           if (!mat.isMeshStandardMaterial) continue;
-          mat.color.copy(mat.userData.originalColor);
-          if (dim) mat.color.multiplyScalar(0.5);
-          mat.emissive.set(hot ? "#e10600" : "#000000");
-          mat.emissiveIntensity = hot ? 0.09 : 0;
+          const color: Color = mat.userData.originalColor.clone();
+          if (dim) color.multiplyScalar(state.mode === "story" ? 0.2 : 0.5);
+          const env = dim && state.mode === "story" ? 0.18 : 1;
+          const emissive = new Color(hot ? "#e10600" : "#000000");
           const transparent = !!(
             p.is_casing &&
             (state.mode === "lab"
               ? state.xray || (selected && selected !== id)
               : storyReveal)
           );
-          const opacity = transparent ? 0.12 : 1;
-          if (mat.transparent !== transparent) {
+          const opacity = soften && !visible ? 0 : transparent ? 0.12 : 1;
+          if (soften && visible && !wasVisible) mat.opacity = 0;
+          const goal = {
+            color,
+            env,
+            opacity,
+            emissive,
+            emission: hot ? 0.09 : 0,
+            object: e.object,
+            visible,
+          };
+          if (initial || state.reducedMotion) {
+            if (mat.transparent !== transparent) mat.needsUpdate = true;
+            mat.color.copy(color);
+            mat.envMapIntensity = env;
+            mat.opacity = opacity;
+            mat.emissive.copy(emissive);
+            mat.emissiveIntensity = goal.emission;
             mat.transparent = transparent;
-            mat.needsUpdate = true;
+            mat.depthWrite = !transparent;
+            this.transitions.delete(mat);
+          } else {
+            this.transitions.set(mat, goal);
+            if (opacity < 1 || mat.opacity < 1) {
+              if (!mat.transparent) mat.needsUpdate = true;
+              mat.transparent = true;
+              mat.depthWrite = false;
+            }
           }
-          mat.opacity = opacity;
-          mat.depthWrite = !transparent;
         }
+    }
+  }
+  animateMaterials(dt: number) {
+    const a = 1 - Math.exp(-Math.min(dt, 0.05) * 8);
+    for (const [mat, g] of this.transitions) {
+      mat.color.lerp(g.color, a);
+      mat.emissive.lerp(g.emissive, a);
+      mat.opacity += (g.opacity - mat.opacity) * a;
+      mat.envMapIntensity += (g.env - mat.envMapIntensity) * a;
+      mat.emissiveIntensity += (g.emission - mat.emissiveIntensity) * a;
+      if (
+        Math.abs(mat.opacity - g.opacity) +
+          Math.abs(mat.envMapIntensity - g.env) +
+          Math.abs(mat.color.r - g.color.r) +
+          Math.abs(mat.color.g - g.color.g) +
+          Math.abs(mat.color.b - g.color.b) <
+        0.002
+      ) {
+        mat.opacity = g.opacity;
+        mat.color.copy(g.color);
+        mat.envMapIntensity = g.env;
+        mat.emissive.copy(g.emissive);
+        mat.emissiveIntensity = g.emission;
+        if (mat.transparent !== g.opacity < 1) mat.needsUpdate = true;
+        mat.transparent = g.opacity < 1;
+        mat.depthWrite = g.opacity === 1;
+        g.object.visible = g.visible;
+        this.transitions.delete(mat);
+      }
     }
   }
   partId(object: Object3D, instanceId?: number) {
@@ -229,23 +296,6 @@ export class PartSelectionController {
       cursor = cursor.parent;
     }
     return null;
-  }
-  fadeCasings(opacity: number) {
-    for (const e of this.entries.values()) {
-      if (!e.part.is_casing || e.batch) continue;
-      for (const mesh of e.meshes)
-        for (const mat of (Array.isArray(mesh.material)
-          ? mesh.material
-          : [mesh.material]) as MeshStandardMaterial[]) {
-          const transparent = opacity < 0.999;
-          if (mat.transparent !== transparent) {
-            mat.transparent = transparent;
-            mat.needsUpdate = true;
-          }
-          mat.opacity = opacity;
-          mat.depthWrite = !transparent;
-        }
-    }
   }
   dispose() {
     for (const e of this.entries.values())

@@ -84,9 +84,9 @@ export const chapters = [
     tag: "COMPLETE EXPLODED VIEW",
     title: "У каждой детали\nесть назначение.",
     sub: "EVERY COMPONENT HAS A PURPOSE",
-    text: "Исследуйте пространственную компоновку. Направления разнесения взяты из исходного Blender-проекта; это учебная экспозиция, а не порядок ремонта.",
+    text: "Исследуйте пространственную компоновку. Сначала освобождаются внешние узлы, затем головки и поршни расходятся вдоль осей банков. Это учебная экспозиция с подготовленной последовательностью разборки.",
     groups: [],
-    fact: ["1266", "отдельных деталей"],
+    fact: ["1267", "отдельных деталей"],
     target: [0.9, 0.64, -0.12],
     eye: [3.1, 2.0, 3.2],
   },
@@ -110,44 +110,4 @@ export const chapters = [
   target: Vec3;
   eye: Vec3;
 }[];
-export const phasePoses: Record<string, number>[] = [
-  {},
-  { covers: 0.9, heads: 0.2 },
-  {
-    covers: 1,
-    heads: 0.65,
-    valves: 0.55,
-    cams: 0.6,
-    pistons: 0.65,
-    crank: 0.2,
-  },
-  { covers: 1, heads: 0.75, valves: 0.7, cams: 0.7, pistons: 0.8, crank: 0.7 },
-  {
-    covers: 1,
-    heads: 0.4,
-    pistons: 0.25,
-    turbo_housing: 0.72,
-    turbo_rotor: 0.52,
-    intake: 0.5,
-    exhaust: 0.25,
-  },
-  { covers: 1, heads: 0.55, valves: 0.65, cams: 0.75 },
-  { covers: 0.7, electric: 0.45 },
-  { covers: 0.85, cooling: 0.45 },
-  { all: 1 },
-  { all: 1 },
-  {},
-];
-export function smooth(t: number) {
-  t = Math.max(0, Math.min(1, t));
-  return t * t * (3 - 2 * t);
-}
-export function storyPose(progress: number) {
-  const x = Math.max(0, Math.min(1, progress)) * 10;
-  const index = Math.min(9, Math.floor(x));
-  return {
-    a: phasePoses[index],
-    b: phasePoses[index + 1],
-    t: smooth(x - index),
-  };
-}
+

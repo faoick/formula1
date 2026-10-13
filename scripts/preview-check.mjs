@@ -17,7 +17,7 @@ page.on("console", (m) => {
 });
 await page.goto("http://localhost:5178/");
 await page.locator(".hero h1").waitFor({ timeout: 60000 });
-await page.waitForFunction(() => window.__engineDebug?.parts === 1266, {
+await page.waitForFunction(() => window.__engineDebug?.parts === 1267, {
   timeout: 30000,
 });
 await page.waitForTimeout(2200);
@@ -40,3 +40,4 @@ await page.getByRole("button", { name: "3D-лаборатория", exact: true 
 await page.waitForTimeout(1800);
 await page.screenshot({ path: "artifacts/lab-desktop.png" });
 await browser.close();
+
